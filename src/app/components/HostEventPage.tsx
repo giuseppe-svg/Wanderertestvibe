@@ -173,7 +173,8 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
       setTimeout(() => onBack(), 800);
     } catch (err) {
       console.error('handleSubmit error:', err);
-      toast.error('Errore imprevisto. Riprova.');
+      const msg = err instanceof Error ? err.message : 'Errore imprevisto. Riprova.';
+      toast.error(msg);
     } finally {
       clearTimeout(safetyTimer);
       setIsSubmitting(false);

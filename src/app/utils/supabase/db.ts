@@ -145,7 +145,10 @@ export async function createEvent(event: EventInsert): Promise<Event | null> {
     .insert(event)
     .select()
     .single();
-  if (error) { console.error('createEvent error:', error.code, error.message, error.details, error.hint); return null; }
+  if (error) {
+    console.error('createEvent error:', error.code, error.message, error.details, error.hint);
+    throw new Error(error.message || 'Errore creazione evento');
+  }
   return data as Event;
 }
 
