@@ -52,7 +52,7 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
     multiDay: !!(editEvent?.date_end),
     dateStart: editEvent?.date_start ?? '',
     dateEnd: editEvent?.date_end ?? '',
-    allDay: !editEvent?.time_start,
+    allDay: editEvent ? !editEvent.time_start : false,
     timeStart: editEvent?.time_start ?? '',
     timeEnd: editEvent?.time_end ?? '',
     // Location
