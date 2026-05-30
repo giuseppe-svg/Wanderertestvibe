@@ -245,6 +245,7 @@ export default function App() {
           onAuthRequired={navigateToAuth}
           isAuthenticated={isAuthenticated}
           userEmail={userEmail}
+          userId={userId}
           editEvent={editingEvent ?? undefined}
         />
         <Toaster />

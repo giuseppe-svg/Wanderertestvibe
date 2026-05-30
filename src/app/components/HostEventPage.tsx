@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { ArrowLeft, Upload, MapPin, Calendar as CalendarIcon, DollarSign, Tag, Eye, Save, Loader2, Clock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSession, createEvent, uploadEventImage, updateEvent } from '../utils/supabase/db';
+import { createEvent, uploadEventImage, updateEvent } from '../utils/supabase/db';
 import type { Event } from '../utils/supabase/types';
 
 interface HostEventPageProps {
@@ -16,6 +16,7 @@ interface HostEventPageProps {
   onAuthRequired: () => void;
   isAuthenticated: boolean;
   userEmail: string;
+  userId: string;
   editEvent?: Event;
 }
 
@@ -36,7 +37,7 @@ const CURRENCIES = [
   { value: 'GBP', label: '£' },
 ];
 
-export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEmail, editEvent }: HostEventPageProps) {
+export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEmail, userId, editEvent }: HostEventPageProps) {
   const isEditing = !!editEvent;
 
   const [formData, setFormData] = useState({
@@ -121,13 +122,12 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
     // Safety net: always unblock after 20s
     const safetyTimer = setTimeout(() => setIsSubmitting(false), 20000);
     try {
-      const session = await getSession();
-      if (!session) { toast.error('Sessione scaduta'); onAuthRequired(); return; }
+      if (!userId) { toast.error('Sessione scaduta'); onAuthRequired(); return; }
 
       const priceNum = formData.priceModel === 'free' ? 0 : parseFloat(formData.price) || 0;
 
       const payload = {
-        host_id: session.user.id,
+        host_id: userId,
         title: formData.title,
         description: formData.description,
         category: formData.category,
