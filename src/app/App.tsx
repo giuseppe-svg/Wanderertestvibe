@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChange, getProfile, signOut as supabaseSignOut } from './utils/supabase/db';
+import { supabase } from './utils/supabase/client';
 import type { Profile, Event } from './utils/supabase/types';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -51,6 +52,19 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true); // block render until session resolved
 
   useEffect(() => {
+    // Handle OAuth redirect: if ?code= is in the URL, exchange it for a session.
+    // We do this BEFORE setting up onAuthStateChange so the session is ready
+    // when INITIAL_SESSION fires.
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      // Clean the URL immediately so the code isn't reused on refresh
+      window.history.replaceState({}, '', window.location.pathname);
+      supabase.auth.exchangeCodeForSession(code).catch((err) => {
+        console.error('OAuth code exchange failed:', err);
+      });
+    }
+
     // Fallback: if auth never resolves within 5s, unblock the UI
     const fallback = setTimeout(() => setAuthLoading(false), 5000);
 
