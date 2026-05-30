@@ -8,7 +8,16 @@ export function getSupabaseClient() {
   if (!supabaseInstance) {
     supabaseInstance = createClient(
       `https://${projectId}.supabase.co`,
-      publicAnonKey
+      publicAnonKey,
+      {
+        auth: {
+          flowType: 'pkce',
+          detectSessionInUrl: true,
+          persistSession: true,
+          autoRefreshToken: true,
+          storageKey: `sb-${projectId}-auth-token`,
+        },
+      }
     );
   }
   return supabaseInstance;

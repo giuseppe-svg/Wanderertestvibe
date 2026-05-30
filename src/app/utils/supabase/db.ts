@@ -19,17 +19,14 @@ export async function signInWithEmail(email: string, password: string) {
   return { data, error };
 }
 
-const PRODUCTION_URL = 'https://wanderertestvibe.vercel.app';
-
 export async function signInWithGoogle() {
-  // In produzione usa il dominio Vercel, in locale usa l'origin corrente
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const redirectTo = isLocalhost ? window.location.origin : PRODUCTION_URL;
-
+  // Always redirect back to the exact origin the user started from, so the PKCE
+  // code_verifier (stored in this origin's localStorage) is available to exchange
+  // the auth code. A hardcoded domain breaks the exchange on any other alias.
   const { data, error } = await sb().auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo,
+      redirectTo: window.location.origin,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
