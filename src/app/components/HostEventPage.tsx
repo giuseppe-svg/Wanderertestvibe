@@ -159,14 +159,15 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
         eventId = created.id;
       }
 
+      toast.success(isEditing ? 'Evento aggiornato!' : asDraft ? 'Bozza salvata!' : 'Evento pubblicato!');
+
+      // Upload image in background — don't block publish
       if (formData.image) {
-        const imageUrl = await uploadEventImage(eventId, formData.image);
-        if (imageUrl) {
-          await updateEvent(eventId, { cover_image_url: imageUrl });
-        }
+        uploadEventImage(eventId, formData.image).then(imageUrl => {
+          if (imageUrl) updateEvent(eventId, { cover_image_url: imageUrl });
+        }).catch(console.error);
       }
 
-      toast.success(isEditing ? 'Evento aggiornato!' : asDraft ? 'Bozza salvata!' : 'Evento pubblicato!');
       setTimeout(() => onBack(), 800);
     } catch (err) {
       console.error(err);
