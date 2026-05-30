@@ -67,8 +67,9 @@ export default function App() {
               setUserType(p.role);
               if (!p.onboarding_completed) {
                 setCurrentPage('profile-setup');
+              } else {
+                setCurrentPage('main-dashboard');
               }
-              // else: stay on home — user is logged in and onboarded
             } else {
               // Profile not created yet → onboarding
               setCurrentPage('profile-setup');
