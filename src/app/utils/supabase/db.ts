@@ -105,7 +105,7 @@ export async function getEvents(filters?: {
   let query = sb()
     .from('events')
     .select('*, host:profiles!host_id(id, full_name, avatar_url, nickname)')
-    .order('date_start', { ascending: true });
+    .order('date_start', { ascending: true, nullsFirst: false });
 
   if (filters?.status) query = query.eq('status', filters.status);
   else query = query.eq('status', 'published');
@@ -134,7 +134,7 @@ export async function getEventsByHost(hostId: string): Promise<Event[]> {
     .from('events')
     .select('*')
     .eq('host_id', hostId)
-    .order('date_start', { ascending: true });
+    .order('date_start', { ascending: true, nullsFirst: false });
   if (error) { console.error('getEventsByHost:', error.message); return []; }
   return (data ?? []) as Event[];
 }
