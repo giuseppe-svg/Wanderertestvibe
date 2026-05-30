@@ -118,6 +118,8 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
     }
 
     setIsSubmitting(true);
+    // Safety net: always unblock after 20s
+    const safetyTimer = setTimeout(() => setIsSubmitting(false), 20000);
     try {
       const session = await getSession();
       if (!session) { toast.error('Sessione scaduta'); onAuthRequired(); return; }
@@ -170,9 +172,10 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
 
       setTimeout(() => onBack(), 800);
     } catch (err) {
-      console.error(err);
+      console.error('handleSubmit error:', err);
       toast.error('Errore imprevisto. Riprova.');
     } finally {
+      clearTimeout(safetyTimer);
       setIsSubmitting(false);
     }
   };
