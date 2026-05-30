@@ -1,27 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from './info';
 
-// Create a singleton Supabase client instance
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
+// Client created eagerly at module load so the OAuth ?code= in the URL
+// is processed immediately — before React mounts or any useEffect runs.
+// Lazy initialization caused a timing gap that prevented session exchange.
+export const supabase = createClient(
+  `https://${projectId}.supabase.co`,
+  publicAnonKey,
+  {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: `sb-${projectId}-auth-token`,
+    },
+  }
+);
 
 export function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(
-      `https://${projectId}.supabase.co`,
-      publicAnonKey,
-      {
-        auth: {
-          flowType: 'pkce',
-          detectSessionInUrl: true,
-          persistSession: true,
-          autoRefreshToken: true,
-          storageKey: `sb-${projectId}-auth-token`,
-        },
-      }
-    );
-  }
-  return supabaseInstance;
+  return supabase;
 }
 
-// Export the client as default for convenience
 export default getSupabaseClient;
