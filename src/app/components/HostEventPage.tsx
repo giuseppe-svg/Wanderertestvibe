@@ -63,7 +63,7 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
     address: editEvent?.address ?? '',
     showAddressImmediately: false,
     // Pricing
-    priceModel: (editEvent?.price_model ?? 'fixed') as 'fixed' | 'free' | 'donation',
+    priceModel: (editEvent?.price_type ?? 'fixed') as 'fixed' | 'free' | 'donation',
     price: editEvent?.price != null ? String(editEvent.price) : '',
     currency: editEvent?.currency ?? 'EUR',
     maxAttendees: editEvent?.max_attendees != null ? String(editEvent.max_attendees) : '',
@@ -72,7 +72,7 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
     language: editEvent?.language ?? '',
     // Image
     image: null as File | null,
-    imagePreview: editEvent?.image_url ?? '',
+    imagePreview: editEvent?.cover_image_url ?? '',
     // Terms
     termsAccepted: false,
   });
@@ -139,9 +139,9 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
         venue: formData.venue || null,
         price: priceNum,
         currency: formData.currency,
-        price_model: formData.priceModel,
-        max_attendees: parseInt(formData.maxAttendees) || 50,
-        image_url: null as string | null,
+        price_type: formData.priceModel,
+        max_attendees: parseInt(formData.maxAttendees) || null,
+        cover_image_url: null as string | null,
         tags: formData.tags,
         requires_approval: formData.requiresApproval,
         status: asDraft ? ('draft' as const) : ('published' as const),
@@ -162,7 +162,7 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
       if (formData.image) {
         const imageUrl = await uploadEventImage(eventId, formData.image);
         if (imageUrl) {
-          await updateEvent(eventId, { image_url: imageUrl });
+          await updateEvent(eventId, { cover_image_url: imageUrl });
         }
       }
 

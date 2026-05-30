@@ -159,7 +159,7 @@ export function MainDashboard({
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="h-3.5 w-3.5" />
-                            {event.current_attendees}/{event.max_attendees} {t.attendees}
+                            {event.attendees_count}/{event.max_attendees} {t.attendees}
                           </span>
                         </div>
                       </div>

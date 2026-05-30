@@ -41,7 +41,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [userEmail, setUserEmail] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userType, setUserType] = useState<'user' | 'host'>('user');
+  const [userType, setUserType] = useState<'user' | 'host' | 'seeker'>('user');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string>('');

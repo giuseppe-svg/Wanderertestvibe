@@ -5,7 +5,7 @@ export interface Profile {
   location: string | null;
   bio: string | null;
   avatar_url: string | null;
-  role: 'user' | 'host';
+  role: 'user' | 'host' | 'seeker';
   nickname: string | null;
   languages: string[];
   interests: string[];
@@ -43,10 +43,10 @@ export interface Event {
   venue: string | null;
   price: number;
   currency: string;
-  price_model: 'fixed' | 'free' | 'donation';
-  max_attendees: number;
-  current_attendees: number;
-  image_url: string | null;
+  price_type: 'fixed' | 'free' | 'donation';
+  max_attendees: number | null;
+  attendees_count: number;
+  cover_image_url: string | null;
   tags: string[];
   requires_approval: boolean;
   status: 'draft' | 'published' | 'cancelled';
@@ -68,5 +68,5 @@ export interface EventAttendee {
 
 export type ProfileInsert = Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>;
-export type EventInsert = Omit<Event, 'id' | 'created_at' | 'updated_at' | 'current_attendees' | 'host'>;
+export type EventInsert = Omit<Event, 'id' | 'created_at' | 'updated_at' | 'attendees_count' | 'host'>;
 export type EventUpdate = Partial<Omit<Event, 'id' | 'created_at' | 'host'>>;
