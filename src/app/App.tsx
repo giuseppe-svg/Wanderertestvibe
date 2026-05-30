@@ -51,14 +51,32 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true); // block render until session resolved
 
   useEffect(() => {
-    // Single source of truth: onAuthStateChange
-    // INITIAL_SESSION fires on mount with existing session (or null)
-    // SIGNED_IN fires on login (email, Google OAuth, etc.)
-    // SIGNED_OUT fires on logout
+    // Fallback: if auth never resolves within 5s, unblock the UI
+    const fallback = setTimeout(() => setAuthLoading(false), 5000);
+
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      if (event === 'INITIAL_SESSION') {
-        if (session) {
-          // User has an active session — restore state
+      try {
+        if (event === 'INITIAL_SESSION') {
+          if (session) {
+            setIsAuthenticated(true);
+            setUserId(session.user.id);
+            setUserEmail(session.user.email ?? '');
+            const p = await getProfile(session.user.id);
+            if (p) {
+              setProfile(p);
+              setUserType(p.role);
+              if (!p.onboarding_completed) {
+                setCurrentPage('profile-setup');
+              }
+              // else: stay on home — user is logged in and onboarded
+            } else {
+              // Profile not created yet → onboarding
+              setCurrentPage('profile-setup');
+            }
+          }
+          // Always resolve loading after INITIAL_SESSION
+          setAuthLoading(false);
+        } else if (event === 'SIGNED_IN' && session) {
           setIsAuthenticated(true);
           setUserId(session.user.id);
           setUserEmail(session.user.email ?? '');
@@ -66,52 +84,36 @@ export default function App() {
           if (p) {
             setProfile(p);
             setUserType(p.role);
-            if (!p.onboarding_completed) {
+            if (p.onboarding_completed) {
+              setCurrentPage(prev =>
+                prev === 'auth' || prev === 'home' ? 'main-dashboard' : prev
+              );
+            } else {
               setCurrentPage('profile-setup');
             }
-            // else: stay on current page (home is fine on refresh)
-          } else {
-            // Profile not created yet → onboarding
-            setUserEmail(session.user.email ?? '');
-            setCurrentPage('profile-setup');
-          }
-        }
-        // Always resolve loading after INITIAL_SESSION
-        setAuthLoading(false);
-      } else if (event === 'SIGNED_IN' && session) {
-        setIsAuthenticated(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email ?? '');
-        const p = await getProfile(session.user.id);
-        if (p) {
-          setProfile(p);
-          setUserType(p.role);
-          if (p.onboarding_completed) {
-            setCurrentPage(prev => {
-              // returnTo has priority, otherwise go to dashboard if coming from auth
-              if (prev === 'auth' || prev === 'home') return 'main-dashboard';
-              return prev;
-            });
           } else {
             setCurrentPage('profile-setup');
           }
-        } else {
-          // New user — no profile yet → onboarding
-          setCurrentPage('profile-setup');
+          setAuthLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setUserId('');
+          setUserEmail('');
+          setProfile(null);
+          setUserType('user');
+          setCurrentPage('home');
+          setAuthLoading(false);
         }
-        setAuthLoading(false);
-      } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setUserId('');
-        setUserEmail('');
-        setProfile(null);
-        setUserType('user');
-        setCurrentPage('home');
+      } catch (err) {
+        console.error('Auth state error:', err);
         setAuthLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(fallback);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const navigateToAuth = () => setCurrentPage('auth');
