@@ -19,11 +19,17 @@ export async function signInWithEmail(email: string, password: string) {
   return { data, error };
 }
 
+const PRODUCTION_URL = 'https://wanderertestvibe.vercel.app';
+
 export async function signInWithGoogle() {
+  // In produzione usa il dominio Vercel, in locale usa l'origin corrente
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const redirectTo = isLocalhost ? window.location.origin : PRODUCTION_URL;
+
   const { data, error } = await sb().auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}`,
+      redirectTo,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
