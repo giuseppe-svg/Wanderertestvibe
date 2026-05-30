@@ -9,12 +9,14 @@ import { Badge } from './ui/badge';
 import { ArrowLeft, Upload, MapPin, Calendar as CalendarIcon, DollarSign, Tag, Eye, Save, Loader2, Clock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSession, createEvent, uploadEventImage, updateEvent } from '../utils/supabase/db';
+import type { Event } from '../utils/supabase/types';
 
 interface HostEventPageProps {
   onBack: () => void;
   onAuthRequired: () => void;
   isAuthenticated: boolean;
   userEmail: string;
+  editEvent?: Event;
 }
 
 const CATEGORIES = [
@@ -34,41 +36,43 @@ const CURRENCIES = [
   { value: 'GBP', label: '£' },
 ];
 
-export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEmail }: HostEventPageProps) {
+export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEmail, editEvent }: HostEventPageProps) {
+  const isEditing = !!editEvent;
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    tags: [] as string[],
+    title: editEvent?.title ?? '',
+    description: editEvent?.description ?? '',
+    category: editEvent?.category ?? '',
+    tags: editEvent?.tags ?? [] as string[],
     // Guidelines
     requirements: '',
     whatToExpect: '',
     preparation: '',
     // Date & time
-    multiDay: false,
-    dateStart: '',
-    dateEnd: '',
-    allDay: false,
-    timeStart: '',
-    timeEnd: '',
+    multiDay: !!(editEvent?.date_end),
+    dateStart: editEvent?.date_start ?? '',
+    dateEnd: editEvent?.date_end ?? '',
+    allDay: !editEvent?.time_start,
+    timeStart: editEvent?.time_start ?? '',
+    timeEnd: editEvent?.time_end ?? '',
     // Location
     locationSearch: '',
-    venue: '',
-    city: '',
-    country: '',
-    address: '',
+    venue: editEvent?.venue ?? '',
+    city: editEvent?.city ?? '',
+    country: editEvent?.country ?? '',
+    address: editEvent?.address ?? '',
     showAddressImmediately: false,
     // Pricing
-    priceModel: 'fixed' as 'fixed' | 'free' | 'donation',
-    price: '',
-    currency: 'EUR',
-    maxAttendees: '',
-    requiresApproval: false,
+    priceModel: (editEvent?.price_model ?? 'fixed') as 'fixed' | 'free' | 'donation',
+    price: editEvent?.price != null ? String(editEvent.price) : '',
+    currency: editEvent?.currency ?? 'EUR',
+    maxAttendees: editEvent?.max_attendees != null ? String(editEvent.max_attendees) : '',
+    requiresApproval: editEvent?.requires_approval ?? false,
     // Language
-    language: '',
+    language: editEvent?.language ?? '',
     // Image
     image: null as File | null,
-    imagePreview: '',
+    imagePreview: editEvent?.image_url ?? '',
     // Terms
     termsAccepted: false,
   });
@@ -144,17 +148,25 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
         language: formData.language || null,
       };
 
-      const created = await createEvent(payload);
-      if (!created) { toast.error('Errore durante la creazione dell\'evento'); return; }
+      let eventId: string;
+      if (isEditing && editEvent) {
+        const updated = await updateEvent(editEvent.id, { ...payload });
+        if (!updated) { toast.error('Errore durante la modifica dell\'evento'); return; }
+        eventId = updated.id;
+      } else {
+        const created = await createEvent(payload);
+        if (!created) { toast.error('Errore durante la creazione dell\'evento'); return; }
+        eventId = created.id;
+      }
 
       if (formData.image) {
-        const imageUrl = await uploadEventImage(created.id, formData.image);
+        const imageUrl = await uploadEventImage(eventId, formData.image);
         if (imageUrl) {
-          await updateEvent(created.id, { image_url: imageUrl });
+          await updateEvent(eventId, { image_url: imageUrl });
         }
       }
 
-      toast.success(asDraft ? 'Bozza salvata!' : 'Evento pubblicato!');
+      toast.success(isEditing ? 'Evento aggiornato!' : asDraft ? 'Bozza salvata!' : 'Evento pubblicato!');
       setTimeout(() => onBack(), 800);
     } catch (err) {
       console.error(err);
@@ -175,7 +187,7 @@ export function HostEventPage({ onBack, onAuthRequired, isAuthenticated, userEma
               Indietro
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Organizza un evento</h1>
+              <h1 className="text-xl font-bold text-gray-900">{isEditing ? 'Modifica evento' : 'Organizza un evento'}</h1>
               <p className="text-sm text-gray-500">Condividi la tua pratica spirituale con la community</p>
             </div>
           </div>

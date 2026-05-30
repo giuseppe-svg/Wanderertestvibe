@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { MapPin, Calendar } from 'lucide-react';
+import { getEvents } from '../utils/supabase/db';
 
 interface HeroProps {
   onDiscoverEvents?: () => void;
@@ -204,6 +205,15 @@ function GlobeCanvas() {
 }
 
 export function Hero({ onDiscoverEvents, onHostEvent }: HeroProps) {
+  const [stats, setStats] = useState({ events: 0, cities: 0 });
+
+  useEffect(() => {
+    getEvents({ status: 'published' }).then(events => {
+      const cities = new Set(events.map(e => e.city)).size;
+      setStats({ events: events.length, cities });
+    });
+  }, []);
+
   return (
     <section className="bg-gradient-to-br from-purple-50 via-white to-indigo-50 py-16 lg:py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -225,11 +235,11 @@ export function Hero({ onDiscoverEvents, onHostEvent }: HeroProps) {
             <div className="flex flex-wrap gap-8">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-purple-600" />
-                <span className="text-sm text-gray-600">57 Cities</span>
+                <span className="text-sm text-gray-600">{stats.cities} {stats.cities === 1 ? 'City' : 'Cities'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-purple-600" />
-                <span className="text-sm text-gray-600">114 Events</span>
+                <span className="text-sm text-gray-600">{stats.events} {stats.events === 1 ? 'Event' : 'Events'}</span>
               </div>
             </div>
 
