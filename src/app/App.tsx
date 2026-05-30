@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getSession, onAuthStateChange, getProfile, signOut as supabaseSignOut } from './utils/supabase/db';
+import { onAuthStateChange, getProfile, signOut as supabaseSignOut } from './utils/supabase/db';
 import type { Profile, Event } from './utils/supabase/types';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -48,54 +48,58 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   // Where to redirect after login
   const [returnTo, setReturnTo] = useState<Page | null>(null);
+  const [authLoading, setAuthLoading] = useState(true); // block render until session resolved
 
   useEffect(() => {
-    // Restore session on mount
-    getSession().then(session => {
-      if (session) {
-        setIsAuthenticated(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email ?? '');
-        getProfile(session.user.id).then(p => {
+    // Single source of truth: onAuthStateChange
+    // INITIAL_SESSION fires on mount with existing session (or null)
+    // SIGNED_IN fires on login (email, Google OAuth, etc.)
+    // SIGNED_OUT fires on logout
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') {
+        if (session) {
+          // User has an active session — restore state
+          setIsAuthenticated(true);
+          setUserId(session.user.id);
+          setUserEmail(session.user.email ?? '');
+          const p = await getProfile(session.user.id);
           if (p) {
             setProfile(p);
             setUserType(p.role);
             if (!p.onboarding_completed) {
               setCurrentPage('profile-setup');
             }
-            // else: stay on home (user is logged in but page stays home unless navigated)
+            // else: stay on current page (home is fine on refresh)
           } else {
+            // Profile not created yet → onboarding
+            setUserEmail(session.user.email ?? '');
             setCurrentPage('profile-setup');
           }
-        });
-      }
-    });
-
-    // Listen for auth state changes (e.g. Google OAuth redirect)
-    const { data: { subscription } } = onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+        }
+        // Always resolve loading after INITIAL_SESSION
+        setAuthLoading(false);
+      } else if (event === 'SIGNED_IN' && session) {
         setIsAuthenticated(true);
         setUserId(session.user.id);
         setUserEmail(session.user.email ?? '');
-        getProfile(session.user.id).then(p => {
-          if (p) {
-            setProfile(p);
-            setUserType(p.role);
-            if (p.onboarding_completed) {
-              // Check if we have a returnTo page
-              setCurrentPage(prev => {
-                if (prev === 'auth') {
-                  return 'main-dashboard';
-                }
-                return prev;
-              });
-            } else {
-              setCurrentPage('profile-setup');
-            }
+        const p = await getProfile(session.user.id);
+        if (p) {
+          setProfile(p);
+          setUserType(p.role);
+          if (p.onboarding_completed) {
+            setCurrentPage(prev => {
+              // returnTo has priority, otherwise go to dashboard if coming from auth
+              if (prev === 'auth' || prev === 'home') return 'main-dashboard';
+              return prev;
+            });
           } else {
             setCurrentPage('profile-setup');
           }
-        });
+        } else {
+          // New user — no profile yet → onboarding
+          setCurrentPage('profile-setup');
+        }
+        setAuthLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setUserId('');
@@ -103,6 +107,7 @@ export default function App() {
         setProfile(null);
         setUserType('user');
         setCurrentPage('home');
+        setAuthLoading(false);
       }
     });
 
@@ -137,38 +142,10 @@ export default function App() {
     setCurrentPage('profile-setup');
   };
 
-  const handleAuthSuccess = async (email: string, isNewUser: boolean = false) => {
+  const handleAuthSuccess = (email: string, _isNewUser: boolean = false) => {
+    // onAuthStateChange(SIGNED_IN) handles everything automatically.
+    // This callback is only used as a fallback signal from AuthPage.
     setUserEmail(email);
-    setIsAuthenticated(true);
-    if (isNewUser) {
-      navigateToProfileSetup(email);
-      return;
-    }
-    const session = await getSession();
-    if (session) {
-      setUserId(session.user.id);
-      const p = await getProfile(session.user.id);
-      if (p) {
-        setProfile(p);
-        setUserType(p.role);
-        if (p.onboarding_completed) {
-          // If there's a returnTo, go there
-          if (returnTo) {
-            const dest = returnTo;
-            setReturnTo(null);
-            setCurrentPage(dest);
-          } else {
-            navigateToMainDashboard();
-          }
-        } else {
-          navigateToProfileSetup(email);
-        }
-      } else {
-        navigateToProfileSetup(email);
-      }
-    } else {
-      navigateToProfileSetup(email);
-    }
   };
 
   const handleProfileComplete = () => {
@@ -194,6 +171,21 @@ export default function App() {
     setProfile(updatedProfile);
     setUserType(updatedProfile.role);
   };
+
+  // Block render until Supabase resolves the session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+            <path d="M14 2C9.582 2 6 5.582 6 10c0 5.5 8 16 8 16s8-10.5 8-16c0-4.418-3.582-8-8-8z" fill="#7C3AED" opacity=".9"/>
+            <circle cx="14" cy="10" r="2.8" fill="white"/>
+          </svg>
+          <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (currentPage === 'auth') {
     return (
