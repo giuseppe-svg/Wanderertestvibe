@@ -1,16 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from './info';
 
-// Client created eagerly at module load.
-// detectSessionInUrl is disabled — OAuth code exchange is handled
-// explicitly in App.tsx to avoid timing races with React mounting.
+// Client created eagerly at module load so the OAuth response in the URL
+// is processed as early as possible.
 export const supabase = createClient(
   `https://${projectId}.supabase.co`,
   publicAnonKey,
   {
     auth: {
       flowType: 'pkce',
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
       persistSession: true,
       autoRefreshToken: true,
       storageKey: `sb-${projectId}-auth-token`,
